@@ -1,0 +1,29 @@
+
+---
+BasedOnStyle: Google
+IndentWidth: 2
+UseTab: Always
+BreakBeforeBraces: Custom
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+Standard: Auto
+ColumnLimit: 100
+
+DerivePointerAlignment: false
+# PointerAlignment: Right
+AlignConsecutiveAssignments: true
+AlignOperands: true
+# AllowShortFunctionsOnASingleLine: SFS_All
+
+BraceWrapping:
+  AfterClass:      false
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterObjCDeclaration: true
+  AfterStruct:     false
+  AfterUnion:      false
+  BeforeCatch:     false
+  BeforeElse:      false
+  IndentBraces:    false
