@@ -1,20 +1,34 @@
-#ifndef LOL_ARCH_MIPS_PIPELINES_H
-#define LOL_ARCH_MIPS_PIPELINES_H
+#ifndef IMPOSTER_ARCH_MIPS_PIPELINES_H
+#define IMPOSTER_ARCH_MIPS_PIPELINES_H
 
 #include <stdint.h>
 
-
-union MemoryStageSignals {
-    int32_t raw;
-    struct {
-      char branch; /* TODO: better name? */
-      char MemWrite;
-      char MemRead;
-    } data;
+union ExecuteStageSignals {
+  int32_t raw;
+  struct {
+    char alu_p0_src;
+    char alu_p1_src;
+    char alu_op;
+    char reg_dst;
+  } data;
 };
 
-union WriteBackStageSignals{
+union MemoryStageSignals {
+  int32_t raw;
+  struct {
+    char branch; /* TODO: better name? */
+    char MemWrite;
+    char MemRead;
+  } data;
+};
+
+union WriteBackStageSignals {
   int16_t raw;
+
+  /*          MemtoReg:     0          1        */
+  /* RegWrite                                   */
+  /*    0               bypass mem   read mem   */
+  /*    1                write mem   undefined  */
   struct {
     char MemtoReg;
     char RegWrite;
@@ -23,10 +37,10 @@ union WriteBackStageSignals{
 
 struct PipelineIFID {
   /* Program counter */
-  uint32_t pc;
+  int32_t pc;
   /* Fetched instruction */
   int32_t inst;
-} pipelineIFID;
+};
 
 struct PipelineIDEX {
   /* alu input data */
@@ -35,43 +49,40 @@ struct PipelineIDEX {
   /* immidiate with sign extend */
   int32_t imm_sx;
 
-  /* TODO: rs rt??? */
+  /* alu operation is set in SIGEX.alu_op */
+  /* int32_t alu_op; */
+
+  /* write-back register */
+  int32_t reg_write_dest, reg_write_trgt;
 
   /* signals */
-  /** Execute stage signals */
-  union {
-    int32_t raw;
-    struct {
-      char alu_p0_src;
-      char alu_p1_src;
-      char alu_op;
-      char reg_dst;
-    } data;
-  } SIGEX;
+  union ExecuteStageSignals SIGEX;
   union MemoryStageSignals SIGMEM;
   union WriteBackStageSignals SIGWB;
-} pipelineIDEX;
+};
 
 struct PipelineEXMEM {
   /* result of alu arithmatic operation on program counter */
-  uint32_t alu_pc_result;
-
   int32_t alu_result;
 
+  /* the output of reg_read_1 coming out of regfile  */
   int32_t reg_read_1;
 
-  int32_t reg_read_from_decode;	/* TODO: what?????????? */
+  /* write-back register, selected from rd & rt */
+  int32_t reg_write;
 
-  union MemoryStageSignals SIGMEM;
+  /* signals */
   union WriteBackStageSignals SIGWB;
+  union MemoryStageSignals SIGMEM;
 };
 
 struct PipelineMEMWB {
   int32_t alu_result;
   int32_t mem_read;
 
-  int32_t reg_read_from_decode;	/* TODO: pls fix ;_; */
+  int32_t reg_write;
 
+  /* signals */
   union WriteBackStageSignals SIGWB;
 };
 

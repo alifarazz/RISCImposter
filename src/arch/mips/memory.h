@@ -1,5 +1,5 @@
-#ifndef LOL_ARCH_MIPS_MEMORY_H
-#define LOL_ARCH_MIPS_MEMORY_H
+#ifndef IMPOSTER_ARCH_MIPS_MEMORY_H
+#define IMPOSTER_ARCH_MIPS_MEMORY_H
 
 #include <stdint.h>
 
@@ -13,6 +13,8 @@
 int32_t g_regfile[REGFILE_SIZE];
 int32_t g_instructions[MAX_INSTRUCTION_COUNT];
 int8_t *g_mainmem;
+
+int32_t prgc;
 
 int32_t g_instructions_len;
 
