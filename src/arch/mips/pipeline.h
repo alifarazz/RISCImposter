@@ -14,9 +14,8 @@ union ExecuteStageSignals {
 };
 
 union MemoryStageSignals {
-  int32_t raw;
+  int16_t raw;
   struct {
-    char branch; /* TODO: better name? */
     char MemWrite;
     char MemRead;
   } data;
@@ -77,9 +76,12 @@ struct PipelineEXMEM {
 };
 
 struct PipelineMEMWB {
+  /* the result of alu operation in execute stage */
   int32_t alu_result;
+  /* the value read from memory in memory stage */
   int32_t mem_read;
 
+  /* the register into which the value is written */
   int32_t reg_write;
 
   /* signals */

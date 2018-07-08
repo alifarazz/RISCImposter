@@ -1,6 +1,8 @@
 #ifndef IMPOSTER_ARCH_MIPS_STAGES_H
 #define IMPOSTER_ARCH_MIPS_STAGES_H
 
+#include <assert.h>
+
 #include "./compnents.h"
 #include "./defs.h"
 #include "./memory.h"
@@ -21,6 +23,8 @@ void exec_stage_fetch()
   prgc = alu(prgc, 4 / 4, FUNC_ADD, 0);
 
   pipelineIFIDn.pc = prgc;
+
+  g_regfile[0] = 0x00000000; /* set $zero reg to 0 */
 }
 
 /* should be called after fetch stage */
@@ -34,6 +38,7 @@ void exec_stage_decode()
   if (remaining_pipeline_stalls) {
     remaining_pipeline_stalls--;
 
+    /* stall the pipeline */
     prgc = alu(prgc, 1, FUNC_SUB, 0); /* pc - 1 */
 
     pipelineIDEXn.SIGWB.data.RegWrite   = 0;
@@ -44,6 +49,7 @@ void exec_stage_decode()
     pipelineIDEXn.SIGEX.data.alu_op     = 0;
     pipelineIDEXn.SIGMEM.data.MemRead   = 0;
     pipelineIDEXn.SIGMEM.data.MemWrite  = 0;
+    return;
   }
 
   if (opcode == 0x00000000) { /* nop */
@@ -55,15 +61,19 @@ void exec_stage_decode()
     pipelineIDEXn.SIGEX.data.alu_op     = 0;
     pipelineIDEXn.SIGMEM.data.MemRead   = 0;
     pipelineIDEXn.SIGMEM.data.MemWrite  = 0;
+    return;
   }
 
   /* read reg contents for alu input in exec stage */
-  pipelineIDEXn.reg_read_0 = g_regfile[get_rt(inst)];
-  pipelineIDEXn.reg_read_1 = g_regfile[get_rs(inst)];
+  assert(get_rs(inst) < REGFILE_SIZE && get_rs(inst) > 0);
+  assert(get_rt(inst) < REGFILE_SIZE && get_rt(inst) > 0);
+  pipelineIDEXn.reg_read_0 = g_regfile[get_rs(inst)];
+  pipelineIDEXn.reg_read_1 = g_regfile[get_rt(inst)];
 
   /* seperate the immidiate from the instruction */
   pipelineIDEXn.imm_sx = sign_extend(get_imm(inst));
 
+  assert(get_rd(inst) < REGFILE_SIZE && get_rd(inst) > 0);
   pipelineIDEXn.reg_write_dest = get_rd(inst);
   pipelineIDEXn.reg_write_trgt = get_rt(inst);
 
@@ -73,7 +83,7 @@ void exec_stage_decode()
   if (is_rtype(inst)) {
     /* set WB stage signals */
     pipelineIDEXn.SIGWB.data.RegWrite = 1; /* write alu result to regfile */
-    pipelineIDEXn.SIGWB.data.MemtoReg = 0; /* don't write the read value to regfile */
+    pipelineIDEXn.SIGWB.data.MemtoReg = 0; /* don't write the read value from memory to regfile */
     /* set EX stage signals
      * these signals are used for execution and forwarding operations */
     pipelineIDEXn.SIGEX.data.alu_p0_src = get_rs(inst);
@@ -108,17 +118,16 @@ void exec_stage_decode()
 	prgc = alu(prgc, pipelineIDEXn.imm_sx / 4, FUNC_ADD, 0); /* pc + beq's imm / 4 */
 	prgc = alu(prgc, 1, FUNC_ADD, 0);			 /* pc + 1 */
 
-	pipelineIFIDn.inst = 0x00000000; /* nop */
-
-	pipelineIDEXn.SIGWB.data.RegWrite   = 0; /* don't alu result to regfile */
-	pipelineIDEXn.SIGWB.data.MemtoReg   = 0; /* don't write the read value to regfile */
-	pipelineIDEXn.SIGEX.data.alu_p0_src = 0;
-	pipelineIDEXn.SIGEX.data.alu_p1_src = 0;
-	pipelineIDEXn.SIGEX.data.reg_dst    = 0;
-	pipelineIDEXn.SIGEX.data.alu_op     = 0; /* doesn't matter */
-	pipelineIDEXn.SIGMEM.data.MemRead   = 0;
-	pipelineIDEXn.SIGMEM.data.MemWrite  = 0;
+	pipelineIFIDn.inst = 0x00000000; /* nop the previous stage */
       }
+      pipelineIDEXn.SIGWB.data.RegWrite   = 0; /* don't alu result to regfile */
+      pipelineIDEXn.SIGWB.data.MemtoReg   = 0; /* don't write the read value to regfile */
+      pipelineIDEXn.SIGEX.data.alu_p0_src = 0;
+      pipelineIDEXn.SIGEX.data.alu_p1_src = 0;
+      pipelineIDEXn.SIGEX.data.reg_dst    = 0;
+      pipelineIDEXn.SIGEX.data.alu_op     = 0; /* doesn't matter */
+      pipelineIDEXn.SIGMEM.data.MemRead   = 0;
+      pipelineIDEXn.SIGMEM.data.MemWrite  = 0;
     } else if (opcode == OPCODE_SW) { /* store word */
       /* we stall the pipeline 3times */
       prgc = alu(prgc, 1, FUNC_SUB, 0); /* pc - 1 */
@@ -168,15 +177,15 @@ void exec_stage_exec()
   }
 
   pipelineEXMEMn.reg_read_1 = pipelineIDEXp.reg_read_1;
-  pipelineEXMEMn.SIGMEM     = pipelineIDEXp.SIGMEM;
-  pipelineMEMWBn.SIGWB      = pipelineIDEXp.SIGWB;
+  pipelineEXMEMn.SIGMEM.raw = pipelineIDEXp.SIGMEM.raw;
+  pipelineMEMWBn.SIGWB.raw  = pipelineIDEXp.SIGWB.raw;
 }
 
 void exec_stage_mem()
 {
   int err;
   if (pipelineEXMEMp.SIGMEM.data.MemRead && pipelineEXMEMp.SIGMEM.data.MemWrite) {
-    printf("[ERROR] encounterd memory read and write. stage: %s, pc: %d", "MEMORY", prgc);
+    printf("[ERROR] encounterd emory read and write. stage: %s, pc: %d", "MEMORY", prgc);
     return;
   } else if (!pipelineEXMEMp.SIGMEM.data.MemRead && pipelineEXMEMp.SIGMEM.data.MemWrite) {
     if ((err = write_memory(pipelineEXMEMp.alu_result, pipelineEXMEMp.reg_read_1)))
@@ -189,11 +198,18 @@ void exec_stage_mem()
   }
 
   pipelineMEMWBn.reg_write = pipelineEXMEMp.reg_write;
-  pipelineMEMWBn.SIGWB     = pipelineEXMEMp.SIGWB;
+  pipelineMEMWBn.SIGWB.raw = pipelineEXMEMp.SIGWB.raw;
 }
 
-
-
-/* select reg for write operation in write-back stage */
+void exec_stage_wb()
+{
+  if (pipelineMEMWBp.SIGWB.data.RegWrite) {
+    if (pipelineMEMWBp.SIGWB.data.MemtoReg) { /* i type? */
+      g_regfile[pipelineMEMWBp.reg_write] = pipelineMEMWBp.mem_read;
+    } else { /* r type */
+      g_regfile[pipelineMEMWBp.reg_write] = pipelineMEMWBp.alu_result;
+    }
+  }
+}
 
 #endif

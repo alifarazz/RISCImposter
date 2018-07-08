@@ -28,11 +28,11 @@
 #define FUNC_XOR 0x00000026
 
 /* return opcode zerofilled to 32 bits */
-static inline int32_t get_opcode(int32_t inst) { return (inst >> 26) & OPCODE_MASK; }
+int32_t get_opcode(int32_t inst) { return (inst >> 26) & OPCODE_MASK; }
 
-static inline int16_t get_imm(int32_t inst) { return inst & IMM_MASK; }
+int16_t get_imm(int32_t inst) { return inst & IMM_MASK; }
 
-static inline int32_t get_rs(int32_t inst) { return (inst >> 21) & REG_MASK; }
+int32_t get_rs(int32_t inst) { return (inst >> 21) & REG_MASK; }
 
 int32_t get_rt(int32_t inst) { return (inst >> 16) & REG_MASK; }
 

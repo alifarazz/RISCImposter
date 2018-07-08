@@ -1,5 +1,5 @@
-#ifndef LOL_MEMORY_H
-#define LOL_MEMORY_H
+#ifndef IMPOSTER_MEMORY_H
+#define IMPOSTER_MEMORY_H
 
 
 #endif

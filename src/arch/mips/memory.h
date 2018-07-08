@@ -4,15 +4,16 @@
 #include <stdlib.h>
 
 #define MAX_INSTRUCTION_COUNT 1000
-#define MEM_SIZE_BYTE 1000
+#define MAX_MEM_SIZE_BYTE 1000
 #define REGFILE_SIZE 32
 
-#define MAX_INSTRUCTION_4_BYTE MAX_INSTRUCTION_COUNT
+#define INSTRUCTION_SIZE_BYTE 4
+#define MAX_INSTRUCTION_COUNT_4_BYTE MAX_INSTRUCTION_COUNT
 
-union ConverterIntChar {
+union {
   int32_t i;
-  int8_t c[4];
-};
+  int8_t c[INSTRUCTION_SIZE_BYTE];
+} convert_ic;
 
 int32_t g_regfile[REGFILE_SIZE];
 int32_t g_instructions[MAX_INSTRUCTION_COUNT];
@@ -21,11 +22,10 @@ int32_t g_mainmemsize;
 
 int32_t prgc;
 
-int32_t g_instructions_len;
+/* int32_t g_instructions_len; */
 
 int read_memory(const int32_t idx, int32_t* content)
 {
-  union ConverterIntChar convert_ic;
   if (g_mainmem == NULL)
     return -1; /* invalid context */
   if (content == NULL)
@@ -49,9 +49,8 @@ int read_memory(const int32_t idx, int32_t* content)
   return 0;
 }
 
-int write_memory(int32_t idx, int32_t content)
+int write_memory(const int32_t idx, const int32_t content)
 {
-  union ConverterIntChar convert_ic;
   if (g_mainmem == NULL)
     return -1; /* invalid context */
   if (idx + 3 >= g_mainmemsize)
