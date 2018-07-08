@@ -34,18 +34,18 @@ static inline int16_t get_imm(int32_t inst) { return inst & IMM_MASK; }
 
 static inline int32_t get_rs(int32_t inst) { return (inst >> 21) & REG_MASK; }
 
-static inline int32_t get_rt(int32_t inst) { return (inst >> 16) & REG_MASK; }
+int32_t get_rt(int32_t inst) { return (inst >> 16) & REG_MASK; }
 
-static inline int32_t get_rd(int32_t inst) { return (inst >> 11) & REG_MASK; }
+int32_t get_rd(int32_t inst) { return (inst >> 11) & REG_MASK; }
 
-static inline int32_t get_shamt(int32_t inst) { return (inst >> 6) & SHAMT_MASK; }
+int32_t get_shamt(int32_t inst) { return (inst >> 6) & SHAMT_MASK; }
 
-static inline int32_t get_func(int32_t inst) { return inst & FUNC_MASK; }
+int32_t get_func(int32_t inst) { return inst & FUNC_MASK; }
 
-static inline int32_t get_address_j(int32_t inst) { return inst ^ (inst & (~J_ADDR_MASK)); }
+int32_t get_address_j(int32_t inst) { return inst ^ (inst & (~J_ADDR_MASK)); }
 
-static inline int is_jtype(int32_t inst) { return get_opcode(inst) == OPCODE_J; }
+int is_jtype(int32_t inst) { return get_opcode(inst) == OPCODE_J; }
 
-static inline int is_rtype(int32_t inst) { return get_opcode(inst) == OPCODE_RTYPE; }
+int is_rtype(int32_t inst) { return get_opcode(inst) == OPCODE_RTYPE; }
 
 #endif

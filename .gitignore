@@ -67,3 +67,8 @@ build
 
 
 # End of https://www.gitignore.io/api/c,git,ninja
+
+GTAGS
+GRTAGS
+GPATH
+

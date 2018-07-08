@@ -26,8 +26,25 @@ void exec_stage_fetch()
 /* should be called after fetch stage */
 void exec_stage_decode()
 {
+  static int remaining_pipeline_stalls = 0;
+
   const int32_t inst   = pipelineIFIDp.inst;
   const int32_t opcode = get_opcode(inst);
+
+  if (remaining_pipeline_stalls) {
+    remaining_pipeline_stalls--;
+
+    prgc = alu(prgc, 1, FUNC_SUB, 0); /* pc - 1 */
+
+    pipelineIDEXn.SIGWB.data.RegWrite   = 0;
+    pipelineIDEXn.SIGWB.data.MemtoReg   = 0;
+    pipelineIDEXn.SIGEX.data.alu_p0_src = 0;
+    pipelineIDEXn.SIGEX.data.alu_p1_src = 0;
+    pipelineIDEXn.SIGEX.data.reg_dst    = 0;
+    pipelineIDEXn.SIGEX.data.alu_op     = 0;
+    pipelineIDEXn.SIGMEM.data.MemRead   = 0;
+    pipelineIDEXn.SIGMEM.data.MemWrite  = 0;
+  }
 
   if (opcode == 0x00000000) { /* nop */
     pipelineIDEXn.SIGWB.data.RegWrite   = 0;
@@ -58,7 +75,7 @@ void exec_stage_decode()
     pipelineIDEXn.SIGWB.data.RegWrite = 1; /* write alu result to regfile */
     pipelineIDEXn.SIGWB.data.MemtoReg = 0; /* don't write the read value to regfile */
     /* set EX stage signals
-     * these signals are used for forwarding operations */
+     * these signals are used for execution and forwarding operations */
     pipelineIDEXn.SIGEX.data.alu_p0_src = get_rs(inst);
     pipelineIDEXn.SIGEX.data.alu_p1_src = get_rt(inst);
     pipelineIDEXn.SIGEX.data.reg_dst    = get_rd(inst);
@@ -103,10 +120,11 @@ void exec_stage_decode()
 	pipelineIDEXn.SIGMEM.data.MemWrite  = 0;
       }
     } else if (opcode == OPCODE_SW) { /* store word */
-      /* we stall the pipeline 3times, once here, once in exec stage, once in mem stage */
+      /* we stall the pipeline 3times */
       prgc = alu(prgc, 1, FUNC_SUB, 0); /* pc - 1 */
 
-      pipelineIFIDn.inst = 0x00000000; /* nop */
+      pipelineIFIDn.inst	= 0x00000000; /* nop */
+      remaining_pipeline_stalls = 2;
 
       pipelineIDEXn.SIGEX.data.alu_p0_src = get_rs(inst);
       pipelineIDEXn.SIGEX.data.alu_p1_src = 0; /* because i-type */
@@ -117,10 +135,11 @@ void exec_stage_decode()
       pipelineIDEXn.SIGWB.data.RegWrite   = 1;
       pipelineIDEXn.SIGWB.data.MemtoReg   = 1; /* update regfile */
     } else if (opcode == OPCODE_LW) {	  /* load word */
-      /* we stall the pipeline 3times, once here, once in exec stage, once in mem stage */
+      /* we stall the pipeline 3times */
       prgc = alu(prgc, 1, FUNC_SUB, 0); /* pc - 1 */
 
-      pipelineIFIDn.inst = 0x00000000; /* nop */
+      pipelineIFIDn.inst	= 0x00000000; /* nop */
+      remaining_pipeline_stalls = 2;
 
       pipelineIDEXn.SIGEX.data.alu_p0_src = get_rs(inst);
       pipelineIDEXn.SIGEX.data.alu_p1_src = 0; /* because i-type */
@@ -136,5 +155,45 @@ void exec_stage_decode()
   }
 }
 
+void exec_stage_exec()
+{
+  if (pipelineIDEXp.SIGEX.data.alu_p1_src) { /* is it an i-type? */
+    pipelineEXMEMn.alu_result =
+	alu(pipelineIDEXp.reg_read_0, pipelineIDEXp.imm_sx, pipelineIDEXp.SIGEX.data.alu_op, 0);
+    pipelineEXMEMn.reg_write = pipelineIDEXp.reg_write_trgt;
+  } else { /* it's an r-type */
+    pipelineEXMEMn.alu_result =
+	alu(pipelineIDEXp.reg_read_0, pipelineIDEXp.reg_read_1, pipelineIDEXp.SIGEX.data.alu_op, 0);
+    pipelineEXMEMn.reg_write = pipelineIDEXp.reg_write_dest;
+  }
+
+  pipelineEXMEMn.reg_read_1 = pipelineIDEXp.reg_read_1;
+  pipelineEXMEMn.SIGMEM     = pipelineIDEXp.SIGMEM;
+  pipelineMEMWBn.SIGWB      = pipelineIDEXp.SIGWB;
+}
+
+void exec_stage_mem()
+{
+  int err;
+  if (pipelineEXMEMp.SIGMEM.data.MemRead && pipelineEXMEMp.SIGMEM.data.MemWrite) {
+    printf("[ERROR] encounterd memory read and write. stage: %s, pc: %d", "MEMORY", prgc);
+    return;
+  } else if (!pipelineEXMEMp.SIGMEM.data.MemRead && pipelineEXMEMp.SIGMEM.data.MemWrite) {
+    if ((err = write_memory(pipelineEXMEMp.alu_result, pipelineEXMEMp.reg_read_1)))
+      printf("[ERROR] memory %s error:%d\nstage: %s, pc: %d", "write", err, "MEMORY", prgc);
+  } else if (pipelineEXMEMp.SIGMEM.data.MemRead && !pipelineEXMEMp.SIGMEM.data.MemWrite) {
+    if ((err = read_memory(pipelineEXMEMp.alu_result, &(pipelineEXMEMp.reg_read_1))))
+      printf("[ERROR] memory %s error:%d\nstage: %s, pc: %d", "read", err, "MEMORY", prgc);
+  } else {
+    /* don't touch the memory so nothing */
+  }
+
+  pipelineMEMWBn.reg_write = pipelineEXMEMp.reg_write;
+  pipelineMEMWBn.SIGWB     = pipelineEXMEMp.SIGWB;
+}
+
+
+
+/* select reg for write operation in write-back stage */
 
 #endif
