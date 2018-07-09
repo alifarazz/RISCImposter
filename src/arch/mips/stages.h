@@ -34,7 +34,6 @@ void exec_stage_decode()
   const int32_t inst   = pipelineIFIDp.inst;
   const int32_t opcode = get_opcode(inst);
 
-
   /* hacky way of stalling the pipeline more than once */
   if (remaining_pipeline_stalls > 0) {
     /* stall the pipeline */
@@ -102,9 +101,11 @@ void exec_stage_decode()
     /* set MEM stage signals: bypass memory */
     pipelineIDEXn.SIGMEM.data.MemRead  = 0;
     pipelineIDEXn.SIGMEM.data.MemWrite = 0;
+
+    /* check for hazards */
+    hazard_rtype(inst, pipelineIFIDp.pc);
   } else if (is_jtype(inst)) { /* only j instruction is supported */
     /* nop the fetched instruction */
-
     pipelineIFIDn.inst = 0x00000000;
 
     /* set new pc extracted from instruction. copy the 6 msbs of the pc and fill
@@ -113,7 +114,7 @@ void exec_stage_decode()
      * compensate for initial nops. */
     prgc = ((get_address_j(inst) ^ (prgc & (~J_ADDR_MASK))) & 0x03FFFFFF) + 5;
 
-    printf("1DECODE: jtype: prgc: 0x%x, cpd_addr: 0x%x\n", prgc,
+    printf("DECODE: jtype: prgc: 0x%x, cpd_addr: 0x%x\n", prgc,
 	   ((get_address_j(inst) ^ (prgc & (~J_ADDR_MASK))) & 0x03FFFFFF) + 5);
 
     pipelineIDEXn.SIGWB.data.RegWrite   = 0; /* don't alu result to regfile */
@@ -124,17 +125,20 @@ void exec_stage_decode()
     pipelineIDEXn.SIGEX.data.alu_op     = 0; /* doesn't matter */
     pipelineIDEXn.SIGMEM.data.MemRead   = 0;
     pipelineIDEXn.SIGMEM.data.MemWrite  = 0;
+
+    puts("[HAZARD] j-jump control");
   } else {
     /* here we handle the i-types */
-    if (opcode == OPCODE_BEQ) { /* branch equal */
+    hazard_itype(inst, pipelineIFIDp.pc); /* check for hazards */
+    if (opcode == OPCODE_BEQ) {		  /* branch equal */
       if (pipelineIDEXn.reg_read_0 == pipelineIDEXn.reg_read_1) {
-	prgc = alu(
-	    prgc,
-	    (0 < pipelineIDEXn.imm_sx) ? -(-pipelineIDEXn.imm_sx) : pipelineIDEXn.imm_sx,
-	    FUNC_ADD, 0);		  /* pc + beq's imm / 4 */
+	prgc =
+	    alu(prgc, (0 < pipelineIDEXn.imm_sx) ? -(-pipelineIDEXn.imm_sx) : pipelineIDEXn.imm_sx,
+		FUNC_ADD, 0);		  /* pc + beq's imm / 4 */
 	prgc = alu(prgc, 1, FUNC_ADD, 0); /* pc + 1 */
 	printf("DECODE beq, new prgc: 0x%x\n", prgc);
 	pipelineIFIDn.inst = 0x00000000; /* nop the previous stage */
+	puts("[HAZARD] beq control");
       }
       pipelineIDEXn.SIGWB.data.RegWrite   = 0; /* don't alu result to regfile */
       pipelineIDEXn.SIGWB.data.MemtoReg   = 0; /* don't write the read value to regfile */
@@ -183,7 +187,6 @@ void exec_stage_decode()
       printf("[WARN] instruction not implemented, stage:%s, PC:%d\n", "DECODE", prgc);
     }
   }
-  discover_hazards();
 }
 
 void exec_stage_exec()

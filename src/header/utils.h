@@ -4,6 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#define NULL_DEVICE "NUL:"
+#else
+#define NULL_DEVICE "/dev/null"
+#endif
+
 /* my own "safe" malloc*/
 void* imposter_malloc(size_t length, size_t size)
 {

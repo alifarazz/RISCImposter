@@ -54,7 +54,7 @@ void cpu_init(const int32_t mainmem_size_byte, const uint32_t instruction_count)
 }
 
 /* cpu terminate */
-void cpu_term() {}
+void cpu_term() { free(g_mainmem); };
 
 /* cpu on rising edge of clock */
 /* the fucntion will only return 0 if prgc reaches g_instruction_count */
@@ -62,6 +62,7 @@ int cpu_tick()
 {
   /* check if pc has reached end of instructions */
   if (g_instruction_count <= prgc) {
+    cpu_term();
     return 0;
   }
   /* write-back should happen before decode because regfile access
