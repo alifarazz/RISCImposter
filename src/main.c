@@ -97,8 +97,8 @@ int main()
   g_instructions[i++] = 0x00000000;
 
   cpu_init(MAX_MEM_SIZE_BYTE, i);
-  g_regfile[1] = 2;
-  g_regfile[2] = 4;
+  /* g_regfile[1] = 2; */
+  /* g_regfile[2] = 4; */
   /* main cpu loop :) */
   while (cpu_tick()) cpu_tock();
 
