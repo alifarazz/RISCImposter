@@ -10,15 +10,16 @@
 
 #include "./defs.h"
 
-inline int32_t sign_extend(int16_t imm) { return imm; }
+int32_t sign_extend(int16_t imm) { return imm; }
 
-inline int32_t shift_left(int32_t addr) { return (0x3FFFFFFF & addr) << 2; }
+int32_t shift_left(int32_t addr) { return (0x3FFFFFFF & addr) << 2; }
 
 int32_t alu(int32_t a, int32_t b, int func, int shamt)
 {
   switch (func) {
   case (FUNC_ADD): {
     /* @TODO : handle int overflow */
+    /* printf("alu add called %d\n", a + b); */
     return a + b;
     break;
   }
@@ -45,6 +46,10 @@ int32_t alu(int32_t a, int32_t b, int func, int shamt)
   }
   case (FUNC_XOR): {
     return a ^ b;
+    break;
+  }
+  case (0): { /* nop */
+    return 0;
     break;
   }
   default:

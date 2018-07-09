@@ -33,18 +33,12 @@ int read_memory(const int32_t idx, int32_t* content)
   if (idx + 3 >= g_mainmemsize)
     return 1; /* out of memeory */
 
-    /* Read 4 bytes from main memory and convert it to a 4 byte word */
-#ifdef __BIG_ENDIAN__
+  /* Read 4 bytes from main memory and convert it to a 4 byte word */
   convert_ic.c[0] = g_mainmem[idx];
   convert_ic.c[1] = g_mainmem[idx + 1];
-  convert_ic.c[2] = g_mainmem[idx + 2];
   convert_ic.c[3] = g_mainmem[idx + 3];
-#else
-  convert_ic.c[0]    = g_mainmem[idx + 3];
-  convert_ic.c[1]    = g_mainmem[idx + 2];
-  convert_ic.c[2]    = g_mainmem[idx + 1];
-  convert_ic.c[3]    = g_mainmem[idx];
-#endif
+  convert_ic.c[2] = g_mainmem[idx + 2];
+
   *content = convert_ic.i;
   return 0;
 }
@@ -57,18 +51,12 @@ int write_memory(const int32_t idx, const int32_t content)
     return 1; /* out of memory */
 
   /* Write 'content' to 4 consecutive byte at main memory */
-  convert_ic.i = content;
-#ifdef __BIG_ENDIAN__
+  convert_ic.i       = content;
   g_mainmem[idx]     = convert_ic.c[0];
   g_mainmem[idx + 1] = convert_ic.c[1];
   g_mainmem[idx + 2] = convert_ic.c[2];
   g_mainmem[idx + 3] = convert_ic.c[3];
-#else
-  g_mainmem[idx + 3] = convert_ic.c[0];
-  g_mainmem[idx + 2] = convert_ic.c[1];
-  g_mainmem[idx + 1] = convert_ic.c[2];
-  g_mainmem[idx]     = convert_ic.c[3];
-#endif
+
   return 0;
 }
 

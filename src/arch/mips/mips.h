@@ -22,31 +22,18 @@ void set_memory(int32_t c)
 /* cpu initialization */
 void cpu_init(const int32_t mainmem_size_byte, const uint32_t instruction_count)
 {
-  prgc = 0;
+  /* start at the begining of instructions */
+  prgc = 5;
 
   /* initialize pipeline registers */
   pipelineIFIDn.inst = 0;
-  pipelineIFIDn.pc   = 0;
+  pipelineIFIDn.pc   = 5;
 
-  pipelineIDEXn.imm_sx	 = 0;
-  pipelineIDEXn.reg_read_0     = 0;
-  pipelineIDEXn.reg_read_1     = 0;
-  pipelineIDEXn.reg_write_dest = 0;
-  pipelineIDEXn.reg_write_trgt = 0;
-  pipelineIDEXn.SIGEX.raw      = 0;
-  pipelineIDEXn.SIGMEM.raw     = 0;
-  pipelineIDEXn.SIGWB.raw      = 0;
+  pipelineIDEXn = (struct PipelineIDEX){0, 0, 0, 0, 0, {0}, {0}, {0}};
 
-  pipelineEXMEMn.reg_write  = 0;
-  pipelineEXMEMn.reg_read_1 = 0;
-  pipelineEXMEMn.alu_result = 0;
-  pipelineEXMEMn.SIGMEM.raw = 0;
-  pipelineEXMEMn.SIGWB.raw  = 0;
+  pipelineEXMEMn = (struct PipelineEXMEM){0, 0, 0, {0}, {0}};
 
-  pipelineMEMWBn.alu_result = 0;
-  pipelineMEMWBn.mem_read   = 0;
-  pipelineMEMWBn.reg_write  = 0;
-  pipelineMEMWBn.SIGWB.raw  = 0;
+  pipelineMEMWBn = (struct PipelineMEMWB){0, 0, 0, {0}};
 
   pipelineIFIDp  = pipelineIFIDn;
   pipelineIDEXp  = pipelineIDEXn;
@@ -77,11 +64,13 @@ int cpu_tick()
   if (g_instruction_count <= prgc) {
     return 0;
   }
+  /* write-back should happen before decode because regfile access
+   * fetch should happen before decode because pipeline stalls */
+  exec_stage_wb();
   exec_stage_fetch();
   exec_stage_decode();
   exec_stage_exec();
   exec_stage_mem();
-  exec_stage_wb();
   return 1;
 }
 

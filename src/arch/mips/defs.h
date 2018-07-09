@@ -20,12 +20,12 @@
 #define OPCODE_RTYPE 0x00000000
 #define FUNC_ADD 0x00000020
 #define FUNC_AND 0x00000024
+#define FUNC_SUB 0x00000022
 #define FUNC_JR 0x00000008
 #define FUNC_NOR 0x00000027
 #define FUNC_OR 0x00000025
-#define FUNC_SLT 0x0000002A
-#define FUNC_SUB 0x00000022
 #define FUNC_XOR 0x00000026
+#define FUNC_SLT 0x0000002A
 
 /* return opcode zerofilled to 32 bits */
 int32_t get_opcode(int32_t inst) { return (inst >> 26) & OPCODE_MASK; }
@@ -44,8 +44,8 @@ int32_t get_func(int32_t inst) { return inst & FUNC_MASK; }
 
 int32_t get_address_j(int32_t inst) { return inst ^ (inst & (~J_ADDR_MASK)); }
 
-int is_jtype(int32_t inst) { return get_opcode(inst) == OPCODE_J; }
+char is_jtype(int32_t inst) { return get_opcode(inst) == OPCODE_J; }
 
-int is_rtype(int32_t inst) { return get_opcode(inst) == OPCODE_RTYPE; }
+char is_rtype(int32_t inst) { return get_opcode(inst) == OPCODE_RTYPE; }
 
 #endif
