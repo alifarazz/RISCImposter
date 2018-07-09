@@ -69,7 +69,7 @@ static int32_t convert_str_bin(const char* buf)
 int main(int argc, char* argv[])
 {
   int i;
-  FILE *insfp, *memfp, *tmpfp = NULL;
+  FILE *insfp, *memfp;
 
   /* TODO: should be in init_cpu or boot_cpu */
   if (NULL == (insfp = imposter_open_file(INSTRUCTION_LOCATION, "r")))
@@ -95,23 +95,6 @@ int main(int argc, char* argv[])
   g_instructions[i++] = 0x00000000;
   g_instructions[i++] = 0x00000000;
   g_instructions[i++] = 0x00000000;
-
-  /* if ((argc > 1 && (!strcmp(argv[1], "-v") || !strcmp(argv[1], "--verbose")))) { */
-    /* tmpfp = stdout; */
-    /* freopen(NULL_DEVICE, "w", stdout); */
-  /* } */
-  /* initialize cpu with memory size and instruction count */
-  cpu_init(MAX_MEM_SIZE_BYTE, i);
-  g_regfile[1] = 2;
-  g_regfile[2] = 4;
-
-  /* main cpu loop :) */
-  while (cpu_tick()) cpu_tock();
-
-  if (tmpfp != NULL) {
-    fclose(stdout);
-    stdout = tmpfp;
-  }
 
   putchar('\n');
   reg_dump(-1, stdout);
