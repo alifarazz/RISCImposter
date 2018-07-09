@@ -62,7 +62,6 @@ int cpu_tick()
 {
   /* check if pc has reached end of instructions */
   if (g_instruction_count <= prgc) {
-    cpu_term();
     return 0;
   }
   /* write-back should happen before decode because regfile access

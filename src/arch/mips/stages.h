@@ -80,7 +80,6 @@ void exec_stage_decode()
    * the i-type instructions. They each will be handeled separately */
   /* {add, sub, and, or, slt, nor, xor} are handled here */
   if (is_rtype(inst)) {
-    /* check hazard */
     prgc = alu(prgc, 1, FUNC_SUB, 0); /* pc - 1 */
 
     pipelineIFIDn.inst = 0x00000000; /* nop the fetched instruction */
@@ -103,7 +102,7 @@ void exec_stage_decode()
     pipelineIDEXn.SIGMEM.data.MemWrite = 0;
 
     /* check for hazards */
-    hazard_rtype(inst, pipelineIFIDp.pc);
+    hazard_rtype(inst, pipelineIFIDp.pc - 1);
   } else if (is_jtype(inst)) { /* only j instruction is supported */
     /* nop the fetched instruction */
     pipelineIFIDn.inst = 0x00000000;
@@ -129,8 +128,8 @@ void exec_stage_decode()
     puts("[HAZARD] j-jump control");
   } else {
     /* here we handle the i-types */
-    hazard_itype(inst, pipelineIFIDp.pc); /* check for hazards */
-    if (opcode == OPCODE_BEQ) {		  /* branch equal */
+    hazard_itype(inst, pipelineIFIDp.pc - 1); /* check for hazards */
+    if (opcode == OPCODE_BEQ) {		      /* branch equal */
       if (pipelineIDEXn.reg_read_0 == pipelineIDEXn.reg_read_1) {
 	prgc =
 	    alu(prgc, (0 < pipelineIDEXn.imm_sx) ? -(-pipelineIDEXn.imm_sx) : pipelineIDEXn.imm_sx,

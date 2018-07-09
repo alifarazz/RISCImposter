@@ -2,14 +2,14 @@ RISC Imposter
 ########################################
 A general purpose cycle accurate RISC cpu simulator.
 
-This simulator currenly supports MIPS arch. It is designed to support other CPU arches as well.
+This simulator currently supports MIPS arch. It is designed to support other CPU arches as well.
 
 
 Instruction Support:
 ====================
 
 MIPS:
-
+-------
 * R type: Add, And, Or, Xor, Slt
 * I type: Beq, Lw, Sw
 * J type: j
@@ -93,6 +93,7 @@ Go to the root of the project and run:
 Usage
 =====
 
+Tweak the ``ins.txt`` to include instructions then run Imposter:
 
 .. code-block:: bash
 
@@ -101,7 +102,7 @@ Usage
 
 
 Contribution:
-============
+=============
 
 You know the drill:
 

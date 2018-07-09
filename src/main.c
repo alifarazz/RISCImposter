@@ -73,8 +73,9 @@ int main(int argc, char* argv[])
 
   /* TODO: should be in init_cpu or boot_cpu */
   if (NULL == (insfp = imposter_open_file(INSTRUCTION_LOCATION, "r")))
-    goto exit_clean;
+    return EXIT_FAILURE;
 
+  /* fill pipeline with nop */
   g_instructions[0] = 0x00000000;
   g_instructions[1] = 0x00000000;
   g_instructions[2] = 0x00000000;
@@ -83,39 +84,33 @@ int main(int argc, char* argv[])
   for (i = 5; NULL != fgets(g_char_buf, CHAR_BUFFER_SIZE, insfp);) {
     if (g_char_buf[0] == '#') /* it's a comment */
       continue;
-
     /* assume anything after the instruction is a comment */
     g_char_buf[INSTRUCTION_SIZE_BYTE * 8] = '\0';
 
     g_instructions[i++] = convert_str_bin(g_char_buf);
   }
   fclose(insfp);
+  /* fill pipeline with nop */
   g_instructions[i++] = 0x00000000;
   g_instructions[i++] = 0x00000000;
   g_instructions[i++] = 0x00000000;
   g_instructions[i++] = 0x00000000;
   g_instructions[i++] = 0x00000000;
+
+  /* initialize the CPU */
+  cpu_init(MAX_MEM_SIZE_BYTE, i);
+  g_regfile[1] = 2;
+  g_regfile[2] = 4;
+
+  /* CPU loop */
+  while (cpu_tick()) cpu_tock();
 
   putchar('\n');
   reg_dump(-1, stdout);
   if (NULL != (memfp = imposter_open_file(MEMORY_DUMP_LOCATION, "w")))
     mem_dump(-1, memfp);
 
-  /* if ((fp = fopen("../regfile.txt", "w")) == NULL) { */
-  /*   perror("fopen() failed regfile."); */
-  /*   goto exit_clean; */
-  /* } */
-  /* lol_reg_dump(-1, context, fp); */
-  /* fclose(fp); */
-  /* if ((fp = fopen("../mainmem.txt", "w")) == NULL) { */
-  /*   perror("fopen() failed main memory"); */
-  /*   goto exit_clean; */
-  /* } */
-  /* lol_mem_dump(-1, context, fp); */
-  /* fclose(fp); */
+  cpu_term();
 
   return EXIT_SUCCESS;
-
-exit_clean:
-  return EXIT_FAILURE;
 }
