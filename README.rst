@@ -2,7 +2,7 @@ RISC Imposter
 ########################################
 A general purpose cycle accurate RISC cpu simulator.
 
-This simulator currently supports MIPS arch. It is designed to support other CPU arches as well.
+This simulator currently supports MIPS arch. It is designed to support other CPU architectures as well.
 
 
 Instruction Support:
